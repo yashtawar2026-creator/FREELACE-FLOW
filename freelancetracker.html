@@ -1,0 +1,907 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Freelanc-ish</title>
+  <style>
+    body { margin: 0; background: #fff7dc; color: #282439; font: 16px  }
+    [hidden] { display: none !important; }
+    header { padding: 20px; background: #1F2937; border-bottom: 2px solid #282439; }
+    .header-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    header h1 { margin: 0 0 8px; color: #FFD166; font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif; font-size: 2.4rem; letter-spacing: 0.04em; }
+    header p { margin: 0; color: #fff7dc; }
+    #accountBar { display: flex; align-items: center; gap: 12px; color: #fff7dc; }
+    main { max-width: 900px; margin: 20px auto; padding: 0 16px; }
+    .auth-shell { max-width: 480px; margin: 42px auto; padding: 0 16px; }
+    .auth-card { padding: 24px; }
+    .auth-card h2 { margin: 0 0 8px; color: #1F2937; font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif; }
+    .auth-intro { margin: 0 0 18px; line-height: 1.5; }
+    .auth-tabs, .provider-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .auth-tabs { margin-bottom: 18px; }
+    .auth-tab { background: #fff7dc; }
+    .auth-tab.active { background: #1F2937; color: #FFD166; }
+    .auth-card form { margin-bottom: 12px; }
+    .auth-card label { font-weight: 600; }
+    .auth-card input { box-sizing: border-box; width: 100%; }
+    .provider-options button { background: #fff; color: #1F2937; }
+    .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: #625e6e; font-size: 14px; }
+    .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: #d5d0c5; }
+    .auth-note { margin: 16px 0 0; color: #625e6e; font-size: 13px; line-height: 1.45; }
+    #authMessage { min-height: 1.4em; margin: 8px 0; color: #8b2c13; }
+    #authMessage.success { color: #23633e; }
+    .stats, .columns { display: grid; gap: 12px; }
+    .stats { grid-template-columns: repeat(3, 1fr); margin-bottom: 12px; }
+    .columns { grid-template-columns: 1fr 1fr; }
+    .section-heading, .filters, .card-actions { display: flex; align-items: center; gap: 10px; }
+    .section-heading { justify-content: space-between; flex-wrap: wrap; }
+    .filters { margin: 12px 0; flex-wrap: wrap; }
+    .filters input { flex: 1 1 220px; }
+    .card-list { display: grid; gap: 12px; margin-top: 12px; }
+    .record-card { padding: 14px; border: 1px solid #c8c3d1; border-radius: 8px; background: #fffdf5; }
+    .record-card h3 { margin: 0 0 6px; }
+    .record-card p { line-height: 1.45; white-space: pre-wrap; }
+    .record-meta, .muted { color: #625e6e; font-size: 14px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .form-grid .wide { grid-column: 1 / -1; }
+    textarea { box-sizing: border-box; width: 100%; min-height: 90px; padding: 9px; font: inherit; resize: vertical; }
+    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .profile-grid label { display: grid; gap: 5px; }
+    .profile-grid .wide { grid-column: 1 / -1; }
+    .interaction-list { display: grid; gap: 6px; margin: 10px 0; padding-left: 20px; }
+    .inline-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; }
+    .inline-form textarea { min-height: 56px; }
+    .status-pill { display: inline-block; padding: 3px 8px; background: #fff0bf; border-radius: 999px; font-size: 13px; }
+    .admin-tools { margin-left: auto; }
+    .danger { background: #f4c2bd; }
+    .box, .stat { padding: 16px; background: #ffffff; border: 2px solid #12101e; border-radius: 8px; }
+    .stat b { display: block; margin-top: 6px; font-size: 22px; }
+    form { display: grid; gap: 8px; }
+    input, select, button { padding: 9px; font: inherit; }
+    button { background: #F97316; border: 1px solid #282439; cursor: pointer; }
+    table { width: 100%; margin-top: 16px; border-collapse: collapse; }
+    th, td { padding: 8px; border-bottom: 1px solid #aaa; text-align: left; }
+    #clock { margin: 16px; font-size: 30px; text-align: center; }
+    @media (max-width: 650px) { .columns, .stats, .profile-grid, .form-grid { grid-template-columns: 1fr; } .header-inner { align-items: flex-start; flex-direction: column; } .form-grid .wide, .profile-grid .wide { grid-column: auto; } .inline-form { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div><h1>Freelanc-ish</h1><p>Keep your projects and work hours in one place.</p></div>
+      <div id="accountBar" hidden><span id="welcomeText"></span><button id="logoutButton" type="button">Log out</button></div>
+    </div>
+  </header>
+  <section id="authScreen" class="auth-shell" hidden>
+    <div class="box auth-card">
+      <h2 id="authTitle">Log in</h2>
+      <p class="auth-intro">Save your freelance projects and hours in your local profile.</p>
+      <div class="auth-tabs" role="group" aria-label="Choose login or sign-up">
+        <button class="auth-tab active" id="loginTab" type="button" aria-pressed="true">Log in</button>
+        <button class="auth-tab" id="signupTab" type="button" aria-pressed="false">Sign up</button>
+      </div>
+      <form id="phoneForm">
+        <div id="nameFieldGroup" hidden>
+          <label for="fullName">Your name</label>
+          <input id="fullName" name="name" autocomplete="name" placeholder="Name">
+        </div>
+        <label for="mobileNumber">Mobile number</label>
+        <input id="mobileNumber" name="mobile" type="tel" autocomplete="tel" inputmode="tel" placeholder="e.g. +1 555 123 4567" required>
+        <button id="phoneSubmit" type="submit">Log in with mobile number</button>
+      </form>
+      <p id="authMessage" role="status" aria-live="polite"></p>
+      <div class="auth-divider">or continue with</div>
+      <div class="provider-options">
+        <button id="googleButton" type="button">Continue with Google</button>
+        <button id="twitterButton" type="button">Continue with Twitter</button>
+      </div>
+      <p><button id="adminDemoButton" type="button">Open local admin demo</button></p>
+      <p class="auth-note">Local demo: profiles and sessions are saved in this browser. Mobile numbers are not verified by SMS, and Google/Twitter buttons create local demo profiles without connecting to those services.</p>
+    </div>
+  </section>
+  <main id="trackerApp" hidden>
+    <section class="stats">
+      <div class="stat">Projects <b id="projectCount">0</b></div><div class="stat">Hours <b id="hoursTotal">0.0</b></div><div class="stat">Estimated earnings <b id="earned">$0.00</b></div>
+    </section>
+    <section class="box" style="margin-bottom:12px">
+      <div class="section-heading"><h2>Profile and resume</h2><span class="muted">Saved to this browser profile</span></div>
+      <form id="profileForm" class="profile-grid">
+        <label>Name<input id="profileName" name="name" maxlength="80" required></label>
+        <label>Professional headline<input id="profileHeadline" name="headline" maxlength="120" placeholder="e.g. UX designer"></label>
+        <label>Email<input id="profileEmail" name="email" type="email" maxlength="160"></label>
+        <label>Portfolio URL<input id="profilePortfolio" name="portfolio" type="url" maxlength="300" placeholder="https://..."></label>
+        <label class="wide">Skills<input id="profileSkills" name="skills" maxlength="300" placeholder="Separate skills with commas"></label>
+        <label class="wide">About you<textarea id="profileBio" name="bio" maxlength="1500" placeholder="A short professional introduction"></textarea></label>
+        <label class="wide">Resume summary<textarea id="resumeSummary" name="resumeSummary" maxlength="3000" placeholder="Experience, education, and highlights"></textarea></label>
+        <label class="wide">Resume file (PDF, DOC, DOCX, or TXT; up to 750 KB)<input id="resumeFile" type="file" accept=".pdf,.doc,.docx,.txt,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></label>
+        <div class="wide card-actions"><button type="submit">Save profile</button><span id="resumeCurrent" class="muted"></span><span id="profileMessage" role="status" class="muted"></span></div>
+      </form>
+    </section>
+    <section class="box" style="margin-bottom:12px">
+      <div class="section-heading"><h2>Freelance opportunities</h2><span class="muted">New listings are reviewed before others can see them</span></div>
+      <form id="opportunityForm" class="form-grid">
+        <input name="title" placeholder="Opportunity title" maxlength="120" required>
+        <input name="client" placeholder="Client or organization" maxlength="120" required>
+        <input name="rate" type="number" min="0" max="100000000" step="0.01" placeholder="Budget / hourly rate" required>
+        <label>Rate type<select name="rateType"><option>Fixed budget</option><option>Hourly</option></select></label>
+        <textarea class="wide" name="description" placeholder="Describe the work and requirements (at least 20 characters)" minlength="20" maxlength="3000" required></textarea>
+        <button class="wide" type="submit">Post opportunity for review</button>
+      </form>
+      <div class="filters">
+        <input id="opportunitySearch" type="search" placeholder="Search title, client, or description" aria-label="Search opportunities">
+        <select id="opportunityFilter" aria-label="Filter opportunities"><option value="all">All available</option><option value="saved">Saved</option><option value="mine">My listings</option></select>
+      </div>
+      <div id="opportunities" class="card-list" aria-live="polite"></div>
+    </section>
+    <section id="applicationsSection" class="box" style="margin-bottom:12px">
+      <div class="section-heading"><h2>Applications and conversations</h2><span class="muted">Track proposals, decisions, and follow-ups</span></div>
+      <div id="applications" class="card-list" aria-live="polite"></div>
+    </section>
+    <section id="moderationSection" class="box" style="margin-bottom:12px" hidden>
+      <div class="section-heading"><h2>Admin moderation</h2><span class="muted">Review new opportunity listings</span></div>
+      <div id="moderationQueue" class="card-list"></div>
+    </section>
+    <div class="columns">
+      <section class="box">
+        <h2>Add a project</h2>
+        <form id="projectForm">
+          <input name="title" placeholder="Project name" required>
+          <input name="client" placeholder="Client name" required>
+          <input name="rate" type="number" min="0" value="25" required>
+          <button>Add project</button>
+        </form>
+      </section>
+      <section class="box">
+        <h2>Work timer</h2>
+        <label for="timerProject">Choose a project:</label>
+        <select id="timerProject"></select>
+        <div id="clock">00:00:00</div>
+        <button id="timerButton">Start timer</button>
+      </section>
+    </div>
+    <section class="box">
+      <div class="section-heading"><h2>Projects</h2><div class="filters"><input id="projectSearch" type="search" placeholder="Search projects or clients" aria-label="Search projects"><select id="projectStatusFilter" aria-label="Filter projects by status"><option value="all">All statuses</option><option>New</option><option>In progress</option><option>Waiting</option><option>Done</option></select></div></div>
+      <table>
+        <thead><tr><th>Project</th><th>Status</th><th>Rate / hours</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+  </main>
+  <script>
+    const KEY = "freelanceish-v1";
+    const ACCOUNTS_KEY = "freelanceish-accounts-v1";
+    const SESSION_KEY = "freelanceish-session-v1";
+    const OPPORTUNITIES_KEY = "freelanceish-opportunities-v1";
+    const APPLICATIONS_KEY = "freelanceish-applications-v1";
+    const APPLICATION_STATUSES = ["Submitted", "Under review", "Interview", "Offer", "Hired", "Declined"];
+    function readArray(key) {
+      try {
+        const value = JSON.parse(localStorage.getItem(key) || "[]");
+        return Array.isArray(value) ? value : [];
+      } catch (error) {
+        return [];
+      }
+    }
+    let accounts = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || "[]");
+    let currentUser = null;
+    let projects = [];
+    let timer = null;
+    let profile = {};
+    let resume = null;
+    let savedOpportunityIds = [];
+    let opportunities = readArray(OPPORTUNITIES_KEY);
+    let applications = readArray(APPLICATIONS_KEY);
+    const form = document.querySelector("#projectForm");
+    const authScreen = document.querySelector("#authScreen");
+    const trackerApp = document.querySelector("#trackerApp");
+    let authMode = "login";
+
+    function save() {
+      if (!currentUser) return;
+      localStorage.setItem(KEY + "-user-" + currentUser.id, JSON.stringify({
+        projects: projects,
+        running: timer,
+        profile: profile,
+        resume: resume,
+        savedOpportunityIds: savedOpportunityIds
+      }));
+    }
+
+    function saveMarketplace() {
+      localStorage.setItem(OPPORTUNITIES_KEY, JSON.stringify(opportunities));
+      localStorage.setItem(APPLICATIONS_KEY, JSON.stringify(applications));
+    }
+
+    function makeId(prefix) {
+      return prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    }
+
+    function showAuthMessage(message, isSuccess) {
+      const element = document.querySelector("#authMessage");
+      element.textContent = message;
+      element.classList.toggle("success", Boolean(isSuccess));
+    }
+
+    function setAuthMode(mode) {
+      authMode = mode;
+      const signingUp = mode === "signup";
+      document.querySelector("#authTitle").textContent = signingUp ? "Create your account" : "Log in";
+      document.querySelector("#nameFieldGroup").hidden = !signingUp;
+      document.querySelector("#fullName").required = signingUp;
+      document.querySelector("#phoneSubmit").textContent = signingUp ? "Sign up with mobile number" : "Log in with mobile number";
+      document.querySelector("#loginTab").classList.toggle("active", !signingUp);
+      document.querySelector("#signupTab").classList.toggle("active", signingUp);
+      document.querySelector("#loginTab").setAttribute("aria-pressed", String(!signingUp));
+      document.querySelector("#signupTab").setAttribute("aria-pressed", String(signingUp));
+      showAuthMessage("", false);
+    }
+
+    function loadUserData() {
+      const userDataKey = KEY + "-user-" + currentUser.id;
+      let savedData = localStorage.getItem(userDataKey);
+      if (!savedData && localStorage.getItem(KEY) && localStorage.getItem(KEY + "-legacy-imported") !== "true") {
+        savedData = localStorage.getItem(KEY);
+        localStorage.setItem(KEY + "-legacy-imported", "true");
+      }
+      const saved = JSON.parse(savedData || '{"projects":[],"running":null}');
+      projects = Array.isArray(saved.projects) ? saved.projects : [];
+      projects.forEach(function(project) {
+        if (!Number.isFinite(project.elapsedSeconds)) {
+          project.elapsedSeconds = Number(project.hours || 0) * 3600;
+        }
+      });
+      timer = saved.running && projects.some(function(project) { return project.id === saved.running.id; })
+        ? saved.running
+        : null;
+      profile = saved.profile && typeof saved.profile === "object" ? saved.profile : {};
+      if (!profile.name) profile.name = currentUser.name;
+      resume = saved.resume && typeof saved.resume === "object" ? saved.resume : null;
+      savedOpportunityIds = Array.isArray(saved.savedOpportunityIds) ? saved.savedOpportunityIds : [];
+      save();
+    }
+
+    function enterApp(user) {
+      currentUser = user;
+      localStorage.setItem(SESSION_KEY, user.id);
+      document.querySelector("#welcomeText").textContent = "Hi, " + user.name;
+      document.querySelector("#accountBar").hidden = false;
+      authScreen.hidden = true;
+      trackerApp.hidden = false;
+      loadUserData();
+      render();
+    }
+
+    function normalizeMobile(value) {
+      return value.replace(/[^\d]/g, "");
+    }
+
+    document.querySelector("#loginTab").onclick = function() { setAuthMode("login"); };
+    document.querySelector("#signupTab").onclick = function() { setAuthMode("signup"); };
+
+    document.querySelector("#phoneForm").onsubmit = function(event) {
+      event.preventDefault();
+      const mobile = normalizeMobile(document.querySelector("#mobileNumber").value);
+      if (mobile.length < 7 || mobile.length > 15) {
+        showAuthMessage("Enter a valid mobile number with 7 to 15 digits.", false);
+        return;
+      }
+      let user = accounts.find(function(account) {
+        return account.provider === "mobile" && account.identifier === mobile;
+      });
+      if (authMode === "signup") {
+        if (user) {
+          showAuthMessage("An account with this number already exists. Log in instead.", false);
+          return;
+        }
+        const name = document.querySelector("#fullName").value.trim();
+        if (!name) {
+          showAuthMessage("Enter your name to create an account.", false);
+          return;
+        }
+        user = { id: "mobile-" + mobile, provider: "mobile", identifier: mobile, name: name, role: "member" };
+        accounts.push(user);
+        localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+      } else if (!user) {
+        showAuthMessage("No local profile found for this number. Choose Sign up to create one.", false);
+        return;
+      }
+      enterApp(user);
+    };
+
+    function useLocalProvider(provider, label) {
+      const identifier = "demo-" + provider;
+      let user = accounts.find(function(account) {
+        return account.provider === provider && account.identifier === identifier;
+      });
+      if (!user) {
+        user = { id: identifier, provider: provider, identifier: identifier, name: label + " demo user", role: "member" };
+        accounts.push(user);
+        localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+      }
+      enterApp(user);
+    }
+
+    document.querySelector("#googleButton").onclick = function() { useLocalProvider("google", "Google"); };
+    document.querySelector("#twitterButton").onclick = function() { useLocalProvider("twitter", "Twitter"); };
+
+    document.querySelector("#adminDemoButton").onclick = function() {
+      let admin = accounts.find(function(account) { return account.id === "local-demo-admin"; });
+      if (!admin) {
+        admin = { id: "local-demo-admin", provider: "demo-admin", identifier: "local-demo-admin", name: "Freelanc-ish Admin", role: "admin" };
+        accounts.push(admin);
+      }
+      admin.role = "admin";
+      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+      enterApp(admin);
+    };
+
+    document.querySelector("#logoutButton").onclick = function() {
+      save();
+      currentUser = null;
+      localStorage.removeItem(SESSION_KEY);
+      trackerApp.hidden = true;
+      document.querySelector("#accountBar").hidden = true;
+      authScreen.hidden = false;
+      document.querySelector("#mobileNumber").value = "";
+      document.querySelector("#fullName").value = "";
+      setAuthMode("login");
+    };
+
+    function restoreSession() {
+      const sessionId = localStorage.getItem(SESSION_KEY);
+      const user = accounts.find(function(account) { return account.id === sessionId; });
+      if (user) enterApp(user);
+      else {
+        authScreen.hidden = false;
+        trackerApp.hidden = true;
+      }
+    }
+
+    function render() {
+      const rows = document.querySelector("#rows");
+      const choice = document.querySelector("#timerProject");
+      const oldChoice = choice.value;
+      const projectQuery = document.querySelector("#projectSearch").value.trim().toLowerCase();
+      const projectStatus = document.querySelector("#projectStatusFilter").value;
+      rows.innerHTML = "";
+      choice.innerHTML = "";
+      let hours = 0;
+      let earnings = 0;
+
+      projects.forEach(function(project) {
+        hours += project.hours;
+        earnings += project.hours * project.rate;
+
+        const option = document.createElement("option");
+        option.value = project.id;
+        option.textContent = project.title;
+        choice.appendChild(option);
+
+        if ((projectStatus !== "all" && project.status !== projectStatus) ||
+            (projectQuery && !(project.title + " " + project.client).toLowerCase().includes(projectQuery))) return;
+
+        const row = document.createElement("tr");
+        const name = document.createElement("td");
+        name.textContent = project.title + " - " + project.client;
+        row.appendChild(name);
+
+        const statusCell = document.createElement("td");
+        const status = document.createElement("select");
+        status.innerHTML = "<option>New</option><option>In progress</option><option>Waiting</option><option>Done</option>";
+        status.value = project.status;
+        status.onchange = function() {
+          project.status = status.value;
+          save();
+        };
+        statusCell.appendChild(status);
+        row.appendChild(statusCell);
+
+        const rate = document.createElement("td");
+        rate.textContent = "$" + project.rate + " / " + project.hours.toFixed(1) + "h";
+        row.appendChild(rate);
+
+        const action = document.createElement("td");
+        const remove = document.createElement("button");
+        remove.textContent = "Delete";
+        remove.onclick = function() {
+          projects = projects.filter(function(item) {
+            return item.id !== project.id;
+          });
+          if (timer && timer.id === project.id) timer = null;
+          save();
+          render();
+        };
+        action.appendChild(remove);
+        row.appendChild(action);
+        rows.appendChild(row);
+      });
+
+      if (!rows.children.length) {
+        const emptyRow = document.createElement("tr");
+        const emptyCell = document.createElement("td");
+        emptyCell.colSpan = 4;
+        emptyCell.textContent = projects.length ? "No projects match these filters." : "No projects yet. Add one above to start tracking.";
+        emptyRow.appendChild(emptyCell);
+        rows.appendChild(emptyRow);
+      }
+
+      if (timer && projects.some(function(project) { return project.id === timer.id; })) {
+        choice.value = timer.id;
+      } else if (oldChoice) {
+        choice.value = oldChoice;
+      }
+      choice.disabled = Boolean(timer);
+      document.querySelector("#projectCount").textContent = projects.length;
+      document.querySelector("#hoursTotal").textContent = hours.toFixed(1) + "h";
+      document.querySelector("#earned").textContent = "$" + earnings.toFixed(2);
+      document.querySelector("#timerButton").textContent = timer ? "Stop and save" : "Start timer";
+      updateClock();
+      renderProfile();
+      renderOpportunities();
+      renderApplications();
+      renderModeration();
+    }
+
+    function updateClock() {
+      const projectId = timer ? timer.id : document.querySelector("#timerProject").value;
+      const project = projects.find(function(item) { return item.id === projectId; });
+      let seconds = project ? Math.floor(project.elapsedSeconds || 0) : 0;
+      if (timer && timer.id === projectId) {
+        seconds += Math.floor((Date.now() - timer.startedAt) / 1000);
+      }
+      let display = [
+        Math.floor(seconds / 3600),
+        Math.floor(seconds / 60) % 60,
+        seconds % 60
+      ];
+      document.querySelector("#clock").textContent = display.map(function(number) {
+        return String(number).padStart(2, "0");
+      }).join(":");
+    }
+
+    function renderProfile() {
+      document.querySelector("#profileName").value = profile.name || currentUser.name || "";
+      document.querySelector("#profileHeadline").value = profile.headline || "";
+      document.querySelector("#profileEmail").value = profile.email || "";
+      document.querySelector("#profilePortfolio").value = profile.portfolio || "";
+      document.querySelector("#profileSkills").value = profile.skills || "";
+      document.querySelector("#profileBio").value = profile.bio || "";
+      document.querySelector("#resumeSummary").value = profile.resumeSummary || "";
+      const resumeElement = document.querySelector("#resumeCurrent");
+      resumeElement.textContent = resume ? "Current resume: " : "No resume file saved.";
+      if (resume) {
+        const link = document.createElement("a");
+        link.href = resume.dataUrl;
+        link.download = resume.name;
+        link.textContent = resume.name;
+        resumeElement.appendChild(link);
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "danger";
+        removeButton.textContent = "Remove resume";
+        removeButton.onclick = function() {
+          resume = null;
+          save();
+          renderProfile();
+        };
+        resumeElement.appendChild(document.createTextNode(" "));
+        resumeElement.appendChild(removeButton);
+      }
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
+    }
+
+    function readUserData(userId) {
+      try {
+        return JSON.parse(localStorage.getItem(KEY + "-user-" + userId) || "null");
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function createTextElement(tag, className, text) {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      element.textContent = text;
+      return element;
+    }
+
+    function renderOpportunities() {
+      const container = document.querySelector("#opportunities");
+      const query = document.querySelector("#opportunitySearch").value.trim().toLowerCase();
+      const filter = document.querySelector("#opportunityFilter").value;
+      container.innerHTML = "";
+      const visible = opportunities.filter(function(item) {
+        const isOwner = item.ownerId === currentUser.id;
+        const canReview = currentUser.role === "admin";
+        const canSee = item.moderationStatus === "Approved" || isOwner || canReview;
+        const matchesFilter = filter === "saved" ? savedOpportunityIds.includes(item.id) :
+          filter === "mine" ? isOwner : true;
+        const searchable = (item.title + " " + item.client + " " + item.description).toLowerCase();
+        return canSee && matchesFilter && (!query || searchable.includes(query));
+      }).sort(function(a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+
+      visible.forEach(function(item) {
+        const card = document.createElement("article");
+        card.className = "record-card";
+        card.appendChild(createTextElement("h3", "", item.title));
+        card.appendChild(createTextElement("div", "record-meta", item.client + " · " + item.rateType + " · $" + Number(item.rate).toFixed(2) + " · Posted by " + item.ownerName));
+        const status = createTextElement("span", "status-pill", item.moderationStatus);
+        card.appendChild(status);
+        card.appendChild(createTextElement("p", "", item.description));
+        if (item.moderationStatus !== "Approved") {
+          card.appendChild(createTextElement("p", "muted", "Only you and admins can see this listing until it is approved."));
+        }
+
+        const actions = document.createElement("div");
+        actions.className = "card-actions";
+        const isOwner = item.ownerId === currentUser.id;
+        const applied = applications.some(function(application) {
+          return application.listingId === item.id && application.applicantId === currentUser.id;
+        });
+        if (item.moderationStatus === "Approved" && !isOwner) {
+          const saveButton = document.createElement("button");
+          const isSaved = savedOpportunityIds.includes(item.id);
+          saveButton.textContent = isSaved ? "Remove saved" : "Save opportunity";
+          saveButton.onclick = function() {
+            savedOpportunityIds = isSaved
+              ? savedOpportunityIds.filter(function(id) { return id !== item.id; })
+              : savedOpportunityIds.concat(item.id);
+            save();
+            render();
+          };
+          actions.appendChild(saveButton);
+        }
+        if (isOwner) {
+          const removeButton = document.createElement("button");
+          removeButton.className = "danger";
+          removeButton.textContent = "Delete listing";
+          removeButton.onclick = function() {
+            opportunities = opportunities.filter(function(listing) { return listing.id !== item.id; });
+            applications = applications.filter(function(application) { return application.listingId !== item.id; });
+            saveMarketplace();
+            render();
+          };
+          actions.appendChild(removeButton);
+        }
+        if (item.moderationStatus === "Approved" && !isOwner && !applied) {
+          const applyForm = document.createElement("form");
+          applyForm.className = "inline-form";
+          const proposal = document.createElement("textarea");
+          proposal.placeholder = "Write a short proposal (at least 10 characters)";
+          proposal.minLength = 10;
+          proposal.maxLength = 2000;
+          proposal.required = true;
+          proposal.oninput = function() { proposal.setCustomValidity(""); };
+          const applyButton = document.createElement("button");
+          applyButton.type = "submit";
+          applyButton.textContent = "Apply";
+          applyForm.append(proposal, applyButton);
+          applyForm.onsubmit = function(event) {
+            event.preventDefault();
+            const message = proposal.value.trim();
+            if (message.length < 10) {
+              proposal.setCustomValidity("Please write at least 10 characters.");
+              proposal.reportValidity();
+              return;
+            }
+            proposal.setCustomValidity("");
+            applications.push({
+              id: makeId("application"),
+              listingId: item.id,
+              listingTitle: item.title,
+              ownerId: item.ownerId,
+              ownerName: item.ownerName,
+              applicantId: currentUser.id,
+              applicantName: profile.name || currentUser.name,
+              proposal: message,
+              status: "Submitted",
+              createdAt: new Date().toISOString(),
+              interactions: []
+            });
+            saveMarketplace();
+            render();
+          };
+          card.appendChild(applyForm);
+        } else if (applied) {
+          actions.appendChild(createTextElement("span", "muted", "Application submitted · see Applications and conversations below"));
+        }
+        if (actions.children.length) card.appendChild(actions);
+        container.appendChild(card);
+      });
+
+      if (!visible.length) {
+        const empty = filter === "saved" ? "No saved opportunities match your search." :
+          filter === "mine" ? "You have not posted any opportunities yet." : "No opportunities match your search.";
+        container.appendChild(createTextElement("p", "muted", empty));
+      }
+    }
+
+    function renderApplications() {
+      const container = document.querySelector("#applications");
+      container.innerHTML = "";
+      const relevant = applications.filter(function(application) {
+        return application.applicantId === currentUser.id || application.ownerId === currentUser.id;
+      }).sort(function(a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+
+      relevant.forEach(function(application) {
+        const card = document.createElement("article");
+        card.className = "record-card";
+        const isApplicant = application.applicantId === currentUser.id;
+        const title = application.listingTitle || "Opportunity";
+        card.appendChild(createTextElement("h3", "", title));
+        card.appendChild(createTextElement("div", "record-meta", isApplicant
+          ? "Your application · sent " + formatDate(application.createdAt)
+          : "Application from " + application.applicantName + " · received " + formatDate(application.createdAt)));
+        card.appendChild(createTextElement("span", "status-pill", application.status));
+        card.appendChild(createTextElement("p", "", application.proposal));
+
+        if (!isApplicant) {
+          const applicantData = readUserData(application.applicantId) || {};
+          const applicantProfile = applicantData.profile || {};
+          if (applicantProfile.headline) card.appendChild(createTextElement("p", "record-meta", applicantProfile.headline));
+          if (applicantProfile.skills) card.appendChild(createTextElement("p", "", "Skills: " + applicantProfile.skills));
+          if (applicantProfile.bio) card.appendChild(createTextElement("p", "", applicantProfile.bio));
+          if (applicantProfile.resumeSummary) card.appendChild(createTextElement("p", "", "Resume summary: " + applicantProfile.resumeSummary));
+          if (applicantProfile.email) card.appendChild(createTextElement("p", "", "Email: " + applicantProfile.email));
+          if (applicantProfile.portfolio) card.appendChild(createTextElement("p", "", "Portfolio: " + applicantProfile.portfolio));
+          if (applicantData.resume && applicantData.resume.dataUrl) {
+            const resumeLink = document.createElement("a");
+            resumeLink.href = applicantData.resume.dataUrl;
+            resumeLink.download = applicantData.resume.name || "resume";
+            resumeLink.textContent = "Download applicant resume";
+            card.appendChild(resumeLink);
+          }
+          const statusSelect = document.createElement("select");
+          statusSelect.setAttribute("aria-label", "Update application status");
+          APPLICATION_STATUSES.forEach(function(value) {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = value;
+            statusSelect.appendChild(option);
+          });
+          statusSelect.value = application.status;
+          statusSelect.onchange = function() {
+            const oldStatus = application.status;
+            application.status = statusSelect.value;
+            if (oldStatus !== application.status) {
+              if (!Array.isArray(application.interactions)) application.interactions = [];
+              application.interactions.push({ by: profile.name || currentUser.name, text: "Status changed to " + application.status, createdAt: new Date().toISOString() });
+            }
+            saveMarketplace();
+            render();
+          };
+          card.appendChild(statusSelect);
+        }
+
+        const history = document.createElement("ul");
+        history.className = "interaction-list";
+        (Array.isArray(application.interactions) ? application.interactions : []).forEach(function(interaction) {
+          history.appendChild(createTextElement("li", "", interaction.by + " · " + formatDate(interaction.createdAt) + ": " + interaction.text));
+        });
+        if (history.children.length) card.appendChild(history);
+
+        const noteForm = document.createElement("form");
+        noteForm.className = "inline-form";
+        const note = document.createElement("textarea");
+        note.placeholder = "Add a conversation note or follow-up (up to 1,000 characters)";
+        note.maxLength = 1000;
+        note.required = true;
+        note.oninput = function() { note.setCustomValidity(""); };
+        const noteButton = document.createElement("button");
+        noteButton.type = "submit";
+        noteButton.textContent = "Add interaction";
+        noteForm.append(note, noteButton);
+        noteForm.onsubmit = function(event) {
+          event.preventDefault();
+          const message = note.value.trim();
+          if (!message) {
+            note.setCustomValidity("Enter a message before adding it.");
+            note.reportValidity();
+            return;
+          }
+          note.setCustomValidity("");
+          if (!Array.isArray(application.interactions)) application.interactions = [];
+          application.interactions.push({ by: profile.name || currentUser.name, text: message, createdAt: new Date().toISOString() });
+          saveMarketplace();
+          render();
+        };
+        card.appendChild(noteForm);
+        container.appendChild(card);
+      });
+      if (!relevant.length) container.appendChild(createTextElement("p", "muted", "Your applications and client conversations will appear here."));
+    }
+
+    function renderModeration() {
+      const section = document.querySelector("#moderationSection");
+      const container = document.querySelector("#moderationQueue");
+      const isAdmin = currentUser.role === "admin";
+      section.hidden = !isAdmin;
+      container.innerHTML = "";
+      if (!isAdmin) return;
+      const pending = opportunities.filter(function(item) { return item.moderationStatus === "Pending"; });
+      pending.forEach(function(item) {
+        const card = document.createElement("article");
+        card.className = "record-card";
+        card.appendChild(createTextElement("h3", "", item.title));
+        card.appendChild(createTextElement("div", "record-meta", item.client + " · posted by " + item.ownerName + " · " + formatDate(item.createdAt)));
+        card.appendChild(createTextElement("p", "", item.description));
+        const controls = document.createElement("div");
+        controls.className = "card-actions";
+        ["Approved", "Rejected"].forEach(function(decision) {
+          const button = document.createElement("button");
+          button.textContent = decision === "Approved" ? "Approve" : "Reject";
+          if (decision === "Rejected") button.className = "danger";
+          button.onclick = function() {
+            item.moderationStatus = decision;
+            item.reviewedAt = new Date().toISOString();
+            item.reviewedBy = currentUser.id;
+            saveMarketplace();
+            render();
+          };
+          controls.appendChild(button);
+        });
+        card.appendChild(controls);
+        container.appendChild(card);
+      });
+      if (!pending.length) container.appendChild(createTextElement("p", "muted", "The moderation queue is clear."));
+    }
+
+    document.querySelector("#timerProject").onchange = updateClock;
+
+    document.querySelector("#projectSearch").oninput = render;
+    document.querySelector("#projectStatusFilter").onchange = render;
+    document.querySelector("#opportunitySearch").oninput = render;
+    document.querySelector("#opportunityFilter").onchange = render;
+
+    document.querySelector("#profileForm").onsubmit = function(event) {
+      event.preventDefault();
+      const fileInput = document.querySelector("#resumeFile");
+      const file = fileInput.files[0];
+      const message = document.querySelector("#profileMessage");
+      const profileUser = currentUser;
+      const saveProfile = function(dataUrl) {
+        if (currentUser !== profileUser) return;
+        const nameInput = document.querySelector("#profileName");
+        nameInput.oninput = function() { nameInput.setCustomValidity(""); };
+        if (!nameInput.value.trim()) {
+          nameInput.setCustomValidity("Enter your name.");
+          nameInput.reportValidity();
+          return;
+        }
+        nameInput.setCustomValidity("");
+        profile = {
+          name: document.querySelector("#profileName").value.trim(),
+          headline: document.querySelector("#profileHeadline").value.trim(),
+          email: document.querySelector("#profileEmail").value.trim(),
+          portfolio: document.querySelector("#profilePortfolio").value.trim(),
+          skills: document.querySelector("#profileSkills").value.trim(),
+          bio: document.querySelector("#profileBio").value.trim(),
+          resumeSummary: document.querySelector("#resumeSummary").value.trim()
+        };
+        if (file && dataUrl) resume = { name: file.name, type: file.type, dataUrl: dataUrl };
+        currentUser.name = profile.name;
+        const accountIndex = accounts.findIndex(function(account) { return account.id === currentUser.id; });
+        if (accountIndex >= 0) accounts[accountIndex].name = currentUser.name;
+        localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+        document.querySelector("#welcomeText").textContent = "Hi, " + currentUser.name;
+        fileInput.value = "";
+        message.textContent = "Profile saved.";
+        save();
+        render();
+      };
+
+      if (file) {
+        const extension = file.name.split(".").pop().toLowerCase();
+        if (!["pdf", "doc", "docx", "txt"].includes(extension)) {
+          message.textContent = "Choose a PDF, DOC, DOCX, or TXT resume.";
+          return;
+        }
+        if (file.size > 750 * 1024) {
+          message.textContent = "Resume files must be 750 KB or smaller.";
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function() { saveProfile(reader.result); };
+        reader.onerror = function() { message.textContent = "The resume file could not be read."; };
+        reader.readAsDataURL(file);
+      } else {
+        saveProfile(null);
+      }
+    };
+
+    document.querySelector("#opportunityForm").onsubmit = function(event) {
+      event.preventDefault();
+      const opportunityForm = event.currentTarget;
+      const fields = new FormData(opportunityForm);
+      const title = String(fields.get("title") || "").trim();
+      const client = String(fields.get("client") || "").trim();
+      const description = String(fields.get("description") || "").trim();
+      const rate = Number(fields.get("rate"));
+      const titleInput = opportunityForm.elements.namedItem("title");
+      const clientInput = opportunityForm.elements.namedItem("client");
+      const descriptionInput = opportunityForm.elements.namedItem("description");
+      titleInput.oninput = function() { titleInput.setCustomValidity(""); };
+      clientInput.oninput = function() { clientInput.setCustomValidity(""); };
+      descriptionInput.oninput = function() { descriptionInput.setCustomValidity(""); };
+      if (!title) {
+        titleInput.setCustomValidity("Enter an opportunity title.");
+        titleInput.reportValidity();
+        return;
+      }
+      titleInput.setCustomValidity("");
+      if (!client) {
+        clientInput.setCustomValidity("Enter the client or organization.");
+        clientInput.reportValidity();
+        return;
+      }
+      clientInput.setCustomValidity("");
+      if (description.length < 20) {
+        descriptionInput.setCustomValidity("Describe the opportunity in at least 20 characters.");
+        descriptionInput.reportValidity();
+        return;
+      }
+      descriptionInput.setCustomValidity("");
+      if (!title || !client || !Number.isFinite(rate) || rate < 0) return;
+      opportunities.push({
+        id: makeId("opportunity"),
+        ownerId: currentUser.id,
+        ownerName: profile.name || currentUser.name,
+        title: title,
+        client: client,
+        description: description,
+        rate: rate,
+        rateType: fields.get("rateType"),
+        moderationStatus: "Pending",
+        createdAt: new Date().toISOString()
+      });
+      saveMarketplace();
+      opportunityForm.reset();
+      render();
+    };
+
+    form.onsubmit = function(event) {
+      event.preventDefault();
+      const fields = new FormData(form);
+      projects.push({
+        id: String(Date.now()),
+        title: fields.get("title"),
+        client: fields.get("client"),
+        rate: Number(fields.get("rate")),
+        hours: 0,
+        status: "New"
+      });
+      form.reset();
+      save();
+      render();
+    };
+
+    document.querySelector("#timerButton").onclick = function() {
+      if (timer) {
+        const project = projects.find(function(item) {
+          return item.id === timer.id;
+        });
+        if (project) {
+          const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timer.startedAt) / 1000));
+          project.elapsedSeconds = (project.elapsedSeconds || 0) + elapsedSeconds;
+          project.hours += Math.max(1, Math.round(elapsedSeconds / 60)) / 60;
+        }
+        timer = null;
+      } else if (document.querySelector("#timerProject").value) {
+        timer = {
+          id: document.querySelector("#timerProject").value,
+          startedAt: Date.now()
+        };
+      }
+      save();
+      render();
+    };
+
+    setInterval(updateClock, 1000);
+    restoreSession();
+  </script>
+</body>
+</html>
