@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Freelance Tracker</title>
+  <style>
+    body { margin: 0; background: #fff7dc; color: #282439; font: 16px Arial, sans-serif; }
+    header { padding: 20px; background: #ff806e; border-bottom: 2px solid #282439; }
+    main { max-width: 900px; margin: 20px auto; padding: 0 16px; }
+    .stats, .columns { display: grid; gap: 12px; }
+    .stats { grid-template-columns: repeat(3, 1fr); margin-bottom: 12px; }
+    .columns { grid-template-columns: 1fr 1fr; }
+    .box, .stat { padding: 16px; background: #fffdf5; border: 2px solid #282439; border-radius: 8px; }
+    .stat b { display: block; margin-top: 6px; font-size: 22px; }
+    form { display: grid; gap: 8px; }
+    input, select, button { padding: 9px; font: inherit; }
+    button { background: #ffe58b; border: 1px solid #282439; cursor: pointer; }
+    table { width: 100%; margin-top: 16px; border-collapse: collapse; }
+    th, td { padding: 8px; border-bottom: 1px solid #aaa; text-align: left; }
+    #clock { margin: 16px; font-size: 30px; text-align: center; }
+    @media (max-width: 650px) { .columns, .stats { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header><h1>Freelance Tracker</h1><p>Keep your projects and work hours in one place.</p></header>
+  <main>
+    <section class="stats">
+      <div class="stat">Projects <b id="projectCount">0</b></div><div class="stat">Hours <b id="hoursTotal">0.0</b></div><div class="stat">Estimated earnings <b id="earned">$0.00</b></div>
+    </section>
+    <div class="columns">
+      <section class="box">
+        <h2>Add a project</h2>
+        <form id="projectForm">
+          <input name="title" placeholder="Project name" required>
+          <input name="client" placeholder="Client name" required>
+          <input name="rate" type="number" min="0" value="25" required>
+          <button>Add project</button>
+        </form>
+      </section>
+      <section class="box">
+        <h2>Work timer</h2>
+        <label for="timerProject">Choose a project:</label>
+        <select id="timerProject"></select>
+        <div id="clock">00:00:00</div>
+        <button id="timerButton">Start timer</button>
+      </section>
+    </div>
+    <section class="box">
+      <h2>Projects</h2>
+      <table>
+        <thead><tr><th>Project</th><th>Status</th><th>Rate / hours</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+  </main>
+  <script>
+    const KEY = "freelanceish-v1";
+    const saved = JSON.parse(localStorage.getItem(KEY) || '{"projects":[],"running":null}');
+    let projects = saved.projects;
+    projects.forEach(function(project) {
+      if (!Number.isFinite(project.elapsedSeconds)) {
+        project.elapsedSeconds = Number(project.hours || 0) * 3600;
+      }
+    });
+    let timer = saved.running && projects.some(function(project) { return project.id === saved.running.id; })
+      ? saved.running
+      : null;
+    const form = document.querySelector("#projectForm");
+    function save() {
+      localStorage.setItem(KEY, JSON.stringify({ projects: projects, running: timer }));
+    }
+
+    function render() {
+      const rows = document.querySelector("#rows");
+      const choice = document.querySelector("#timerProject");
+      const oldChoice = choice.value;
+      rows.innerHTML = "";
+      choice.innerHTML = "";
+      let hours = 0;
+      let earnings = 0;
+      projects.forEach(function(project) {
+        hours += project.hours;
+        earnings += project.hours * project.rate;
+        const option = document.createElement("option");
+        option.value = project.id;
+        option.textContent = project.title;
+        choice.appendChild(option);
+        const row = document.createElement("tr");
+        const name = document.createElement("td");
+        name.textContent = project.title + " - " + project.client;
+        row.appendChild(name);
+        const statusCell = document.createElement("td");
+        const status = document.createElement("select");
+        status.innerHTML = "<option>New</option><option>In progress</option><option>Waiting</option><option>Done</option>";
+        status.value = project.status;
+        status.onchange = function() { project.status = status.value; save(); };
+        statusCell.appendChild(status);
+        row.appendChild(statusCell);
+        const rate = document.createElement("td");
+        rate.textContent = "$" + project.rate + " / " + project.hours.toFixed(1) + "h";
+        row.appendChild(rate);
+        const action = document.createElement("td");
+        const remove = document.createElement("button");
+        remove.textContent = "Delete";
+        remove.onclick = function() {
+          projects = projects.filter(function(item) { return item.id !== project.id; });
+          if (timer && timer.id === project.id) timer = null;
+          save();
+          render();
+        };
+        action.appendChild(remove);
+        row.appendChild(action);
+        rows.appendChild(row);
+      });
+      if (timer && projects.some(function(project) { return project.id === timer.id; })) {
+        choice.value = timer.id;
+      } else if (oldChoice) {
+        choice.value = oldChoice;
+      }
+      choice.disabled = Boolean(timer);
+      document.querySelector("#projectCount").textContent = projects.length;
+      document.querySelector("#hoursTotal").textContent = hours.toFixed(1) + "h";
+      document.querySelector("#earned").textContent = "$" + earnings.toFixed(2);
+      document.querySelector("#timerButton").textContent = timer ? "Stop and save" : "Start timer";
+      updateClock();
+    }
+
+    function updateClock() {
+      const projectId = timer ? timer.id : document.querySelector("#timerProject").value;
+      const project = projects.find(function(item) { return item.id === projectId; });
+      let seconds = project ? Math.floor(project.elapsedSeconds || 0) : 0;
+      if (timer && timer.id === projectId) {
+        seconds += Math.floor((Date.now() - timer.startedAt) / 1000);
+      }
+      let display = [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60];
+      document.querySelector("#clock").textContent = display.map(function(number) {
+        return String(number).padStart(2, "0");
+      }).join(":");
+    }
+    document.querySelector("#timerProject").onchange = updateClock;
+    form.onsubmit = function(event) {
+      event.preventDefault();
+      const fields = new FormData(form);
+      projects.push({ id: String(Date.now()), title: fields.get("title"), client: fields.get("client"),
+        rate: Number(fields.get("rate")), hours: 0, status: "New" });
+      form.reset();
+      save();
+      render();
+    };
+    document.querySelector("#timerButton").onclick = function() {
+      if (timer) {
+        const project = projects.find(function(item) { return item.id === timer.id; });
+        if (project) {
+          const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timer.startedAt) / 1000));
+          project.elapsedSeconds = (project.elapsedSeconds || 0) + elapsedSeconds;
+          project.hours += Math.max(1, Math.round(elapsedSeconds / 60)) / 60;
+        }
+        timer = null;
+      } else if (document.querySelector("#timerProject").value) {
+        timer = { id: document.querySelector("#timerProject").value, startedAt: Date.now() };
+      }
+      save();
+      render();
+    };
+
+    setInterval(updateClock, 1000);
+    render();
+  </script>
+</body>
+</html>
